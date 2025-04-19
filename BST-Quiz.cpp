@@ -63,7 +63,7 @@ struct BST
   Node * find( Key const & key )
   {
     ///////////////////////// TO-DO (1) //////////////////////////////
-
+return find( key, _root );
     /////////////////////// END-TO-DO (1) ////////////////////////////
   }
 
@@ -71,7 +71,16 @@ struct BST
   Node * find( Key const & key, Node * current )
   {
     ///////////////////////// TO-DO (2) //////////////////////////////
+if ( current == nullptr ) return nullptr;
 
+// Visit
+auto cmp = key <=> current->_pair.first;
+if ( cmp == 0 ) return current;
+
+// Recurse
+return ( cmp < 0 )
+       ? find( key, current->_left )
+       : find( key, current->_right );
     /////////////////////// END-TO-DO (2) ////////////////////////////
   }
 
@@ -93,7 +102,36 @@ struct BST
   Node * insert( KeyValue_Pair const & pair )
   {
     ///////////////////////// TO-DO (3) //////////////////////////////
+if ( _root == nullptr )
+{
+  _root = new Node{ pair };
+  ++_size;
+  return _root;
+}
 
+Node* parent = nullptr;
+Node* curr   = _root;
+
+while ( curr )
+{
+  auto cmp = pair.first <=> curr->_pair.first;
+  if ( cmp == 0 )                     // duplicate key
+    return curr;
+
+  parent = curr;
+  curr   = ( cmp < 0 ) ? curr->_left : curr->_right;
+}
+
+// curr is null: create new node as child of parent
+Node* newNode = new Node{ pair };
+newNode->_parent = parent;
+
+if ( pair.first < parent->_pair.first )
+     parent->_left  = newNode;
+else parent->_right = newNode;
+
+++_size;
+return newNode;
     /////////////////////// END-TO-DO (3) ////////////////////////////
   }
 
@@ -116,7 +154,25 @@ struct BST
   void erase( Key const & key )
   {
     ///////////////////////// TO-DO (4) //////////////////////////////
+Node* node = find( key, _root );
+if ( !node ) return;                       // key not found
 
+// determine existing child (0 or 1 because of assumption)
+Node* child = node->_left ? node->_left : node->_right;
+
+// relink parent → child
+if ( node->_parent == nullptr )            // deleting root
+  _root = child;
+else if ( node == node->_parent->_left )
+  node->_parent->_left  = child;
+else
+  node->_parent->_right = child;
+
+if ( child )
+  child->_parent = node->_parent;
+
+delete node;
+--_size;
     /////////////////////// END-TO-DO (4) ////////////////////////////
   }
 
@@ -137,7 +193,11 @@ struct BST
   Value & operator[]( Key const & key )
   {
     ///////////////////////// TO-DO (5) //////////////////////////////
+Node* n = find( key, _root );
+if ( !n )
+  n = insert( { key, Value{} } );
 
+return n->_pair.second;
     /////////////////////// END-TO-DO (5) ////////////////////////////
   }
 
@@ -168,7 +228,14 @@ struct BST
   void clear( Node * current ) noexcept
   {
     ///////////////////////// TO-DO (6) //////////////////////////////
+if ( current == nullptr ) return;
 
+// Recurse
+clear( current->_left  );
+clear( current->_right );
+
+// Visit
+delete current;
     /////////////////////// END-TO-DO (6) ////////////////////////////
   }
 
@@ -192,7 +259,19 @@ struct BST
     auto count = 0uz;
 
     ///////////////////////// TO-DO (7) //////////////////////////////
+if ( _root == nullptr ) return;
 
+std::queue<Node*> q;
+q.push( _root );
+
+while ( !q.empty() )
+{
+  Node* n = q.front(); q.pop();
+  display( n, count );                // Visit
+
+  if ( n->_left  ) q.push( n->_left  );
+  if ( n->_right ) q.push( n->_right );
+}
     /////////////////////// END-TO-DO (7) ////////////////////////////
   }
 
